@@ -1,0 +1,10 @@
+builds:
+  - skip: true
+before:
+  hooks:
+    - "golangci-lint run"
+    - "go test -coverprofile=coverage.out ./..."
+release:
+  mode: keep-existing 
+snapshot:
+  name_template: "{{ .Version }}-next"
