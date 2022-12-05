@@ -14,10 +14,6 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - uses: goreleaser/goreleaser-action@v2
-        with:
-          distribution: goreleaser
-          version: latest
-          args: release --rm-dist --snapshot
+      - run: make build
       - name: Upload coverage reports to Codecov with GitHub Action
         uses: codecov/codecov-action@v3
