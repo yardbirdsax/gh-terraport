@@ -34,6 +34,11 @@ func ReposFromSearch(search string) ([]RepoSearchResult, error) {
   totalCount := 0
   page := 1
   for {
+    if page > 10 {
+      log.Printf("[WARN] retrieved the maximum number of search results, consider revising your search criteria")
+      log.Printf("[WARN] incomplete results may be shown")
+      return results, nil
+    }
     err := client.Get(fmt.Sprintf("search/repositories?q=%s&page=%d&per_page=100", sanitizedSearch, page), &rawResults)
     if err != nil {
       return results, err
