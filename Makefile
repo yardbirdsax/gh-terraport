@@ -12,7 +12,8 @@ build: tools
 	@ln -sf $(BINARY_PATH) ./gh-terraport
 .PHONY: install
 install: build
-	@gh extension install .
+	@gh extension remove gh-terraport || true
+	@gh extension install --force .
 .PHONY: tools
 tools:
 	$(ENV_VARS) go install $$(go list -f '{{join .Imports " "}}' tools.go)

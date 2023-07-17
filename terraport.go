@@ -70,7 +70,7 @@ func (t *Terraport) FromSearch(search string) (*result.Results, error) {
 		optFns = append(optFns, terraform.WithExcludeLocalModules())
 	}
 
-	repos, err := github.ReposFromSearch(search,)
+	repos, err := github.ReposFromSearch(search)
 	if err != nil {
 		return results, err
 	}
@@ -81,7 +81,10 @@ func (t *Terraport) FromSearch(search string) (*result.Results, error) {
 		coordinatorChan <- true
 		go func(repo github.RepoSearchResult) {
 			defer wg.Done()
-			defer func() { <- coordinatorChan }()
+			defer func() {
+				logWithRepo(repo, "retrieving from coordinator channel")
+				<-coordinatorChan
+			}()
 
 			tmpDir := filepath.Join(os.TempDir(), repo.FullName)
 			gitURL := fmt.Sprintf("git::%s", repo.CloneURL)
@@ -94,6 +97,7 @@ func (t *Terraport) FromSearch(search string) (*result.Results, error) {
 			defer os.RemoveAll(tmpDir)
 
 			err = filepath.Walk(tmpDir, func(path string, info fs.FileInfo, err error) error {
+				// logWithRepo(repo, "processing file %q", path)
 				if filepath.Ext(path) == ".tf" {
 					terraformFile, err := terraform.FromFile(path, optFns...)
 					if err != nil {
@@ -104,6 +108,7 @@ func (t *Terraport) FromSearch(search string) (*result.Results, error) {
 					if err != nil {
 						return err
 					}
+					modulePathWithoutBaseDirectory := filepath.Dir(pathWithoutBaseDirectory)
 
 					for _, m := range terraformFile.Modules {
 						mu.Lock()
@@ -117,24 +122,26 @@ func (t *Terraport) FromSearch(search string) (*result.Results, error) {
 								isUpToDate = "false"
 							}
 						}
-						rawResults = append(rawResults, []interface{}{ repo.FullName, pathWithoutBaseDirectory, m.Source, m.Version, moduleLatestVersion, isUpToDate})
+						rawResults = append(rawResults, []interface{}{repo.FullName, m.Name, pathWithoutBaseDirectory, modulePathWithoutBaseDirectory, m.Source, m.Version, moduleLatestVersion, isUpToDate})
 						mu.Unlock()
 					}
 				}
 				return nil
 			})
 			if err != nil {
-				log.Printf("error processing repo '%s': %v", repo.FullName, err)
+				logWithRepo(repo, "error processing repo: %v", err)
 				return
 			}
+			logWithRepo(repo, "completed processing")
 		}(repo)
 	}
 
 	wg.Wait()
 
 	if len(rawResults) > 0 {
+		log.Println("constructing results")
 		results, err = result.FromSlice(
-			[]interface{}{ "Repo Full Name", "File Path", "Module Formatted Source", "Module Version", "Latest Version", "Up To Date"},
+			[]interface{}{"Repo Full Name", "Module Name", "File Path", "Module Path", "Module Formatted Source", "Module Version", "Latest Version", "Up To Date"},
 			rawResults,
 		)
 	}
@@ -160,4 +167,9 @@ func (t *Terraport) getLatestRelease(repositoryFullName string) string {
 
 		return strings.ReplaceAll(latestRelease.Name, "v", "")
 	}
+}
+
+func logWithRepo(repo github.RepoSearchResult, message string, args ...any) {
+	logMessage := fmt.Sprintf(message, args...)
+	log.Printf("[%s] %s", repo.FullName, logMessage)
 }

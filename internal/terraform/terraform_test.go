@@ -15,6 +15,7 @@ func TestFromFile(t *testing.T) {
 		expectedSource                   string
 		expectedVersion                  string
 		expectedGitHubRepositoryFullName string
+		expectedPath                     string
 		optFns                           []OptFn
 	}{
 		{
@@ -24,6 +25,7 @@ func TestFromFile(t *testing.T) {
 			expectedSource:                   "https://github.com/cloudposse/terraform-aws-vpc",
 			expectedVersion:                  "1.2.0",
 			expectedGitHubRepositoryFullName: "cloudposse/terraform-aws-vpc",
+			expectedPath:                     "../../testdata",
 		},
 		{
 			name:                             "registry_with_version",
@@ -32,6 +34,7 @@ func TestFromFile(t *testing.T) {
 			expectedSource:                   "cloudposse/terraform-aws-vpc",
 			expectedGitHubRepositoryFullName: "",
 			expectedVersion:                  "1.2.0",
+			expectedPath:                     "../../testdata",
 		},
 		{
 			name:                             "with_local",
@@ -41,6 +44,7 @@ func TestFromFile(t *testing.T) {
 			expectedVersion:                  "1.0.0",
 			expectedGitHubRepositoryFullName: "something/module",
 			optFns:                           []OptFn{WithExcludeLocalModules()},
+			expectedPath:                     "../../testdata",
 		},
 		{
 			name:                             "ssh",
@@ -49,6 +53,7 @@ func TestFromFile(t *testing.T) {
 			expectedSource:                   "https://github.com/something/something",
 			expectedVersion:                  "1.0.0",
 			expectedGitHubRepositoryFullName: "something/something",
+			expectedPath:                     "../../testdata",
 		},
 		{
 			name:                             "with_dot_git",
@@ -57,6 +62,7 @@ func TestFromFile(t *testing.T) {
 			expectedSource:                   "https://github.com/something/something",
 			expectedVersion:                  "1.0.0",
 			expectedGitHubRepositoryFullName: "something/something",
+			expectedPath:                     "../../testdata",
 		},
 	}
 
@@ -74,6 +80,7 @@ func TestFromFile(t *testing.T) {
 			assert.Equal(t, tc.expectedName, terraform.Modules[0].Name)
 			assert.Equal(t, tc.expectedGitHubRepositoryFullName, terraform.Modules[0].GitHubRepositoryFullName)
 			assert.Equal(t, tc.expectedSource, terraform.Modules[0].Source)
+			assert.Equal(t, tc.expectedPath, terraform.Path)
 		})
 	}
 }

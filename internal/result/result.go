@@ -3,6 +3,7 @@ package result
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 
@@ -19,7 +20,11 @@ func FromSlice(columnNames []interface{}, data [][]interface{}) (*Results, error
 	result = append(result, columnNames)
 
 	// Write the rest of the data
+	totalLines := len(data)
+	currentLine := 0
 	for _, d := range data {
+		currentLine++
+		log.Printf("[FromSlice] processing data element %d of %d total", currentLine, totalLines)
 		if len(d) != columnCount {
 			return &Results{}, fmt.Errorf("one or more rows contain a different number of columns than what are named")
 		}
@@ -59,7 +64,11 @@ func populateTable(r *Results) table.Writer {
 	}
 	t.AppendHeader(tableHeaderRow)
 
+	totalResults := len(*r)
+	currentResult := 0
 	for _, result := range (*r)[1:] {
+		currentResult++
+		log.Printf("[populateTable] processing result %d of %d total", currentResult, totalResults)
 		tableRow := table.Row{}
 		for _, colVal := range result {
 			typeOf := reflect.TypeOf(colVal)

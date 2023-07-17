@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -18,6 +19,8 @@ type TerraformFile struct {
 	Modules []Module `hcl:"module,block"`
 	// The name of the file
 	FileName string
+	// Path is the directory where the file resides, which resolves to a logical Terraform module.
+	Path string
 }
 
 type OptFn func(*TerraformFile) error
@@ -109,6 +112,7 @@ func FromFile(filePath string, optFns ...OptFn) (*TerraformFile, error) {
 	//nolint:errcheck
 	hclsimple.Decode("placeholder.hcl", content, nil, terraformFile)
 	terraformFile.FileName = filePath
+	terraformFile.Path = filepath.Dir(filePath)
 
 	err = terraformFile.parse()
 	if err != nil {
