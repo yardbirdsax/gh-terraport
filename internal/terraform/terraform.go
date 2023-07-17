@@ -9,7 +9,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsimple"
+	"github.com/yardbirdsax/terraparse"
 )
 
 // TerraformFile represents a single Terraform file.
@@ -89,6 +91,7 @@ type Module struct {
 	Version                  string `hcl:"version,optional"`
 	SourceType               string
 	GitHubRepositoryFullName string
+	Attributes               terraparse.Attributes
 }
 
 // FromFile creates a new TerraformFile struct from a file at a given path
@@ -122,5 +125,21 @@ func FromFile(filePath string, optFns ...OptFn) (*TerraformFile, error) {
 		}
 	}
 
+	parser := hclparse.NewParser()
+	file, diags := parser.ParseHCL(content, filePath)
+	if diags.HasErrors() {
+		return terraformFile, fmt.Errorf("error parsing HCL file %q: %s", filePath, diags.Error())
+	}
+	mod := terraparse.NewModule(filePath)
+	diags = terraparse.LoadModuleFromFile(file, mod)
+	if diags.HasErrors() {
+		return terraformFile, fmt.Errorf("error parsing HCL file %q: %s", filePath, diags.Error())
+	}
+	for i := range terraformFile.Modules {
+		name := terraformFile.Modules[i].Name
+		if m2, exists := mod.ModuleCalls[name]; exists {
+			terraformFile.Modules[i].Attributes = m2.Attributes
+		}
+	}
 	return terraformFile, err
 }

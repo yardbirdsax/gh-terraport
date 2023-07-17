@@ -2,6 +2,8 @@
 package result
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -46,6 +48,38 @@ func (r *Results) AsCSV() string {
 
 	renderedString = t.RenderCSV()
 	return renderedString
+}
+
+func (r *Results) AsJSON() string {
+	renderedString := strings.Builder{}
+
+	renderedString.WriteString("[")
+	firstRow := (*r)[0]
+	isFirstRow := true
+	for _, res := range (*r)[1:] {
+		if !isFirstRow {
+			renderedString.WriteString(",")
+		}
+		renderedString.WriteString("{")
+		isFirstElem := true
+		for i := range res {
+			if !isFirstElem {
+				renderedString.WriteString(",")
+			}
+			renderedString.WriteString(fmt.Sprintf(`"%s":`, firstRow[i]))
+			marshaledValue, _ := json.Marshal(res[i])
+			renderedString.WriteString(string(marshaledValue))
+			isFirstElem = false
+		}
+		renderedString.WriteString("}")
+		isFirstRow = false
+	}
+	renderedString.WriteString("]")
+
+	indented := bytes.Buffer{}
+	json.Indent(&indented, []byte(renderedString.String()), "", "\t")
+
+	return indented.String()
 }
 
 func populateTable(r *Results) table.Writer {

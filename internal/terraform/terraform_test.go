@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/yardbirdsax/terraparse"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestFromFile(t *testing.T) {
@@ -15,6 +18,7 @@ func TestFromFile(t *testing.T) {
 		expectedSource                   string
 		expectedVersion                  string
 		expectedGitHubRepositoryFullName string
+		expectedAttributes               terraparse.Attributes
 		optFns                           []OptFn
 	}{
 		{
@@ -24,6 +28,14 @@ func TestFromFile(t *testing.T) {
 			expectedSource:                   "https://github.com/cloudposse/terraform-aws-vpc",
 			expectedVersion:                  "1.2.0",
 			expectedGitHubRepositoryFullName: "cloudposse/terraform-aws-vpc",
+			expectedAttributes: terraparse.Attributes{
+				"namespace": &terraparse.Attribute{
+					Attribute: &hcl.Attribute{
+						Name: "namespace",
+					},
+					Value: cty.StringVal("something"),
+				},
+			},
 		},
 		{
 			name:                             "registry_with_version",
@@ -74,6 +86,11 @@ func TestFromFile(t *testing.T) {
 			assert.Equal(t, tc.expectedName, terraform.Modules[0].Name)
 			assert.Equal(t, tc.expectedGitHubRepositoryFullName, terraform.Modules[0].GitHubRepositoryFullName)
 			assert.Equal(t, tc.expectedSource, terraform.Modules[0].Source)
+			for _, a := range tc.expectedAttributes {
+				ma, exists := terraform.Modules[0].Attributes[a.Name]
+				assert.True(t, exists, "expected attribute does not exist")
+				assert.Equal(t, a.Value, ma.Value)
+			}
 		})
 	}
 }
